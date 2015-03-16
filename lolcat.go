@@ -70,6 +70,10 @@ func colored(str string, r, g, b int) string {
 	return fmt.Sprintf("\033[38%s;m%s\033[0m", rgb(float64(r), float64(g), float64(b)), str)
 }
 
+func toBaseColor(color float64, mod int) int {
+	return int(6*(color/256)) * mod
+}
+
 func rgb(red, green, blue float64) string {
 	grayPossible := true
 	sep := 42.5
@@ -84,10 +88,7 @@ func rgb(red, green, blue float64) string {
 	if gray {
 		return fmt.Sprintf(";5;%d", 232+int((red+green+blue)/33.0))
 	} else {
-		toColor := func(color float64, mod int) int {
-			return int(6*(color/256)) * mod
-		}
-		value := 16 + toColor(red, 36) + toColor(green, 6) + toColor(blue, 1)
+		value := 16 + toBaseColor(red, 36) + toBaseColor(green, 6) + toBaseColor(blue, 1)
 		return fmt.Sprintf(";5;%d", value)
 	}
 }
