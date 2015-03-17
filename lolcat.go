@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var stripAnsi = regexp.MustCompile(`\\e\[(\d+)(;\d+)?(;\d+)?[m|K]`)
+var stripAnsi = regexp.MustCompile(`\[(\d+)(;\d+)?(;\d+)?[m|K]`)
 
 func rainbow(freq, i float64) (int, int, int) {
 	red := int(math.Sin(freq*i+0)*127 + 128)
