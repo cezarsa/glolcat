@@ -38,20 +38,17 @@ func BenchmarkLolRegular(b *testing.B) {
 	}
 }
 
-func BenchmarkLolBuffered(b *testing.B) {
+func TestLolRegular(t *testing.T) {
 	reader := bytes.NewReader(bigData)
 	buf := bytes.NewBuffer(nil)
-	w := &LolBufferedWriter{
+	w := &LolWriter{
 		os:     1,
 		base:   buf,
 		freq:   0.1,
 		spread: 3.0,
 	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		cat(w, reader)
-	}
+	cat(w, reader)
 	if buf.String() != expected {
-		b.Fatalf("incorrect output, expected:\n%q\ngot:\n%q", expected, buf.String())
+		t.Fatalf("incorrect output, expected:\n%s\ngot:\n%s", expected, buf.String())
 	}
 }

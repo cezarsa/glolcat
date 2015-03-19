@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math"
@@ -11,7 +10,6 @@ import (
 	"time"
 )
 
-var stripAnsi = regexp.MustCompile("\033" + `\[(\d+)(;\d+)?(;\d+)?[m|K]`)
 var stripAnsiStart = regexp.MustCompile("^\033" + `\[(\d+)(;\d+)?(;\d+)?[m|K]`)
 
 type LolWriter struct {
@@ -49,43 +47,6 @@ func (w *LolWriter) Write(data []byte) (int, error) {
 }
 
 func (w *LolWriter) Close() error {
-	return nil
-}
-
-type LolBufferedWriter struct {
-	base   io.Writer
-	os     int
-	spread float64
-	freq   float64
-	buf    bytes.Buffer
-}
-
-func (w *LolBufferedWriter) Write(data []byte) (int, error) {
-	for _, c := range data {
-		if c == '\n' {
-			w.flush()
-			w.base.Write([]byte{'\n'})
-		} else {
-			w.buf.WriteByte(c)
-		}
-	}
-	return len(data), nil
-}
-
-func (w *LolBufferedWriter) flush() {
-	line := w.buf.Bytes()
-	line = stripAnsi.ReplaceAll(line, []byte{})
-	line = bytes.Replace(line, []byte{'\t'}, tabSpaces, -1)
-	for i, chr := range line {
-		r, g, b := rainbow(w.freq, float64(w.os)+(float64(i)/w.spread))
-		fmt.Fprint(w.base, colored(string(chr), r, g, b))
-	}
-	w.buf.Reset()
-	w.os += 1
-}
-
-func (w *LolBufferedWriter) Close() error {
-	w.flush()
 	return nil
 }
 
