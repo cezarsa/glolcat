@@ -8,28 +8,59 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 )
 
-var stripAnsi = regexp.MustCompile(`\[(\d+)(;\d+)?(;\d+)?[m|K]`)
-
-func rainbow(freq, i float64) (int, int, int) {
-	red := int(math.Sin(freq*i+0)*127 + 128)
-	green := int(math.Sin(freq*i+2*math.Pi/3)*127 + 128)
-	blue := int(math.Sin(freq*i+4*math.Pi/3)*127 + 128)
-	return red, green, blue
-}
+var stripAnsi = regexp.MustCompile("\033" + `\[(\d+)(;\d+)?(;\d+)?[m|K]`)
+var stripAnsiStart = regexp.MustCompile("^\033" + `\[(\d+)(;\d+)?(;\d+)?[m|K]`)
 
 type LolWriter struct {
 	base   io.Writer
-	buf    bytes.Buffer
 	os     int
+	li     int
 	spread float64
 	freq   float64
 }
 
+var tabSpaces = []byte("        ")
+
 func (w *LolWriter) Write(data []byte) (int, error) {
+	for i := 0; i < len(data); i++ {
+		c := data[i]
+		if c == '\n' {
+			w.li = 0
+			w.os++
+			w.base.Write([]byte{'\n'})
+		} else if c == '\t' {
+			w.li += len(tabSpaces)
+			w.base.Write(tabSpaces)
+		} else {
+			matchPos := stripAnsiStart.FindIndex(data[i:])
+			if matchPos != nil {
+				i += matchPos[1] - 1
+				continue
+			}
+			r, g, b := rainbow(w.freq, float64(w.os)+(float64(w.li)/w.spread))
+			fmt.Fprint(w.base, colored(string(c), r, g, b))
+			w.li++
+		}
+	}
+	return len(data), nil
+}
+
+func (w *LolWriter) Close() error {
+	return nil
+}
+
+type LolBufferedWriter struct {
+	base   io.Writer
+	os     int
+	spread float64
+	freq   float64
+	buf    bytes.Buffer
+}
+
+func (w *LolBufferedWriter) Write(data []byte) (int, error) {
 	for _, c := range data {
 		if c == '\n' {
 			w.flush()
@@ -41,16 +72,21 @@ func (w *LolWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func (w *LolWriter) flush() {
-	line := w.buf.String()
-	line = stripAnsi.ReplaceAllString(line, "")
-	line = strings.Replace(line, "\t", "        ", -1)
-	for i, chr := range []rune(line) {
+func (w *LolBufferedWriter) flush() {
+	line := w.buf.Bytes()
+	line = stripAnsi.ReplaceAll(line, []byte{})
+	line = bytes.Replace(line, []byte{'\t'}, tabSpaces, -1)
+	for i, chr := range line {
 		r, g, b := rainbow(w.freq, float64(w.os)+(float64(i)/w.spread))
 		fmt.Fprint(w.base, colored(string(chr), r, g, b))
 	}
 	w.buf.Reset()
 	w.os += 1
+}
+
+func (w *LolBufferedWriter) Close() error {
+	w.flush()
+	return nil
 }
 
 func main() {
@@ -62,12 +98,23 @@ func main() {
 		freq:   0.1,
 		spread: 3.0,
 	}
-	io.Copy(&writer, os.Stdin)
-	writer.flush()
+	cat(&writer, os.Stdin)
+}
+
+func cat(writer io.WriteCloser, reader io.Reader) {
+	io.Copy(writer, reader)
+	writer.Close()
+}
+
+func rainbow(freq, i float64) (int, int, int) {
+	red := int(math.Sin(freq*i+0)*127 + 128)
+	green := int(math.Sin(freq*i+2*math.Pi/3)*127 + 128)
+	blue := int(math.Sin(freq*i+4*math.Pi/3)*127 + 128)
+	return red, green, blue
 }
 
 func colored(str string, r, g, b int) string {
-	return fmt.Sprintf("\033[38%s;m%s\033[0m", rgb(float64(r), float64(g), float64(b)), str)
+	return fmt.Sprintf("\033[38%sm%s\033[0m", rgb(float64(r), float64(g), float64(b)), str)
 }
 
 func toBaseColor(color float64, mod int) int {
