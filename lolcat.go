@@ -53,13 +53,22 @@ func (w *LolWriter) Close() error {
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	seed := int(rand.Int31n(256))
+	runLol(seed, os.Stdout, os.Stdin)
+}
+
+func runLol(seed int, output io.Writer, input io.Reader) {
+	defer func() {
+		if r := recover(); r != nil {
+			io.Copy(output, input)
+		}
+	}()
 	writer := LolWriter{
 		os:     seed,
-		base:   os.Stdout,
+		base:   output,
 		freq:   0.1,
 		spread: 3.0,
 	}
-	cat(&writer, os.Stdin)
+	cat(&writer, input)
 }
 
 func cat(writer io.WriteCloser, reader io.Reader) {

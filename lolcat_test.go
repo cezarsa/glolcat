@@ -52,3 +52,12 @@ func TestLolRegular(t *testing.T) {
 		t.Fatalf("incorrect output, expected:\n%s\ngot:\n%s", expected, buf.String())
 	}
 }
+
+func TestRunLol(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	reader := bytes.NewReader(bigData)
+	runLol(1, buf, reader)
+	if buf.String() != expected {
+		t.Fatalf("incorrect output, expected:\n%s\ngot:\n%s", expected, buf.String())
+	}
+}
