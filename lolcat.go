@@ -46,14 +46,25 @@ func (w *LolWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func (w *LolWriter) Close() error {
-	return nil
-}
-
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	seed := int(rand.Int31n(256))
-	runLol(seed, os.Stdout, os.Stdin)
+	if len(os.Args) == 1 {
+		runLol(seed, os.Stdout, os.Stdin)
+		return
+	}
+	var exit int
+	for _, filename := range os.Args[1:] {
+		f, err := os.Open(filename)
+		if err != nil {
+			exit = 1
+			fmt.Printf("%s: %s\n", os.Args[0], err.Error())
+			continue
+		}
+		defer f.Close()
+		runLol(seed, os.Stdout, f)
+	}
+	os.Exit(exit)
 }
 
 func runLol(seed int, output io.Writer, input io.Reader) {
@@ -71,9 +82,8 @@ func runLol(seed int, output io.Writer, input io.Reader) {
 	cat(&writer, input)
 }
 
-func cat(writer io.WriteCloser, reader io.Reader) {
+func cat(writer io.Writer, reader io.Reader) {
 	io.Copy(writer, reader)
-	writer.Close()
 }
 
 func rainbow(freq, i float64) (int, int, int) {

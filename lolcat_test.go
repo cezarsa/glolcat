@@ -30,6 +30,7 @@ func BenchmarkLolRegular(b *testing.B) {
 		spread: 3.0,
 	}
 	b.ResetTimer()
+	b.SetBytes(int64(len(bigData)))
 	for i := 0; i < b.N; i++ {
 		cat(w, reader)
 	}
